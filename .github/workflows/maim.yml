@@ -47,7 +47,7 @@ jobs:
             --device /dev/kvm \
             -p 6080:6080 \
             -e DEVICE="Samsung Galaxy S10" \
-            budtmo/docker-android-x86-9.0
+            budtmo/docker-android:emulator_9.0
           
           echo "Waiting 30 seconds for the Android system layer to map channels..."
           sleep 30
