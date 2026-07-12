@@ -9,19 +9,38 @@ jobs:
       - name: Install Desktop + XRDP
         run: |
           sudo apt-get update
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y xfce4 xfce4-goodies xrdp firefox
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y xfce4 xfce4-goodies xrdp dbus-x11 firefox
           sudo systemctl enable xrdp
-          sudo systemctl start xrdp
-          echo xfce4-session > ~/.xsession
+          sudo adduser xrdp ssl-cert
 
       - name: Create RDP User
         run: |
-          PASSWORD=$(openssl rand -base64 16)
+          PASSWORD="Haron1213"
           sudo useradd -m -s /bin/bash rdpuser
           echo "rdpuser:$PASSWORD" | sudo chpasswd
           sudo usermod -aG sudo rdpuser
           echo "RDP_USER=rdpuser" >> $GITHUB_ENV
           echo "RDP_PASS=$PASSWORD" >> $GITHUB_ENV
+
+      - name: Configure XFCE session for RDP user
+        run: |
+          echo "xfce4-session" | sudo -u rdpuser tee /home/rdpuser/.xsession
+          sudo chown rdpuser:rdpuser /home/rdpuser/.xsession
+          sudo bash -c 'cat > /etc/xrdp/startwm.sh' << 'EOF'
+          #!/bin/sh
+          if [ -r /etc/profile ]; then . /etc/profile; fi
+          if [ -r ~/.profile ]; then . ~/.profile; fi
+          export XDG_CONFIG_DIRS=/etc/xdg
+          export XDG_DATA_DIRS=/usr/local/share:/usr/share
+          startxfce4
+          EOF
+          sudo chmod +x /etc/xrdp/startwm.sh
+          sudo systemctl restart xrdp
+
+      - name: Add rdpuser to docker group
+        run: |
+          sudo groupadd docker || true
+          sudo usermod -aG docker rdpuser
 
       - name: Verify Docker
         run: |
