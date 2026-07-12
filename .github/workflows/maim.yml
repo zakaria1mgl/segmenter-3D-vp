@@ -39,17 +39,17 @@ jobs:
 
       - name: Deploy Docker-Android Container (with noVNC Streaming)
         run: |
-          echo "Downloading and starting Android 9.0 environment..."
-          # Binding specifically to 0.0.0.0 ensures Tailscale can catch the port traffic
+          echo "Starting Android 9.0 environment mapped directly to host network..."
+          # Using --net=host attaches the container ports directly to the Tailscale interface
           docker run -d \
             --name android-container \
             --privileged \
+            --net=host \
             --device /dev/kvm \
-            -p 0.0.0.0:6080:6080 \
             -e DEVICE="Samsung Galaxy S10" \
             budtmo/docker-android:emulator_9.0
           
-          echo "Giving the system 60 seconds to fully launch the web interface server..."
+          echo "Giving the system 60 seconds to bind network ports and start noVNC..."
           sleep 60
 
       - name: Show Web Access Connection Info
