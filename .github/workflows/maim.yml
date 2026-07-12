@@ -1,75 +1,53 @@
-name: Android-Linux-Cloud
-
+name: RDP-Linux-Docker
 on:
   workflow_dispatch:
-
 jobs:
-  android-job:
+  rdp-job:
     runs-on: ubuntu-latest
     timeout-minutes: 360
-
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Verify KVM Hardware Virtualization Acceleration
+      - name: Install Desktop + XRDP
         run: |
-          echo "Updating packages and installing CPU checker tools..."
-          sudo apt-get update && sudo apt-get install -y cpu-checker
-          
-          echo "Checking for Linux Nested Virtualization Support..."
-          kvm-ok
-          
-          echo "Configuring environment to unlock KVM virtualization access permissions..."
-          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
-          sudo udevadm control --reload-rules
-          sudo udevadm trigger --name-match=kvm
-          sudo chmod 666 /dev/kvm
-          echo "KVM layers successfully unlocked."
+          sudo apt-get update
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y xfce4 xfce4-goodies xrdp firefox
+          sudo systemctl enable xrdp
+          sudo systemctl start xrdp
+          echo xfce4-session > ~/.xsession
 
-      - name: Install Tailscale for Linux
+      - name: Create RDP User
+        run: |
+          PASSWORD=$(openssl rand -base64 16)
+          sudo useradd -m -s /bin/bash rdpuser
+          echo "rdpuser:$PASSWORD" | sudo chpasswd
+          sudo usermod -aG sudo rdpuser
+          echo "RDP_USER=rdpuser" >> $GITHUB_ENV
+          echo "RDP_PASS=$PASSWORD" >> $GITHUB_ENV
+
+      - name: Verify Docker
+        run: |
+          docker --version
+          sudo docker info
+          sudo docker run hello-world
+
+      - name: Install Tailscale
         run: |
           curl -fsSL https://tailscale.com/install.sh | sh
-
-      - name: Connect Tailscale
-        run: |
-          sudo tailscale up --authkey=${{ secrets.TAILSCALE_AUTH_KEY }} --hostname=gh-linux-android
+          sudo tailscale up --authkey=${{ secrets.TAILSCALE_AUTH_KEY }} --hostname=gh-runner-${{ github.run_id }}
           TS_IP=$(tailscale ip -4)
           echo "TS_IP=$TS_IP" >> $GITHUB_ENV
 
-      - name: Deploy Docker-Android Container (with noVNC Streaming)
+      - name: Show Connection Info
         run: |
-          echo "Downloading and starting Android 9.0 environment..."
-          # Adding explicit environment flags forces the container to launch noVNC on 6080
-          docker run -d \
-            --name android-container \
-            --privileged \
-            --device /dev/kvm \
-            -p 6080:6080 \
-            -e EMULATOR_DEVICE="Samsung Galaxy S10" \
-            -e WEB_VNC=true \
-            -e APPIUM=false \
-            budtmo/docker-android:emulator_9.0
-          
-          echo "Giving the web server 60 seconds to fully initialize its interface..."
-          sleep 60
+          echo "============================"
+          echo "✅ RDP Connected Successfully"
+          echo "IP Address (Tailscale): $TS_IP"
+          echo "Username: $RDP_USER"
+          echo "Password: $RDP_PASS"
+          echo "============================"
 
-      - name: Show Web Access Connection Info
-        run: |
-          echo ""
-          echo "============================================="
-          echo "✅ LINUX ANDROID RUNNER ALIVE"
-          echo "============================================="
-          echo "How to connect:"
-          echo "1. Ensure Tailscale is running on your local home PC."
-          echo "2. Open Google Chrome or Edge on your home PC."
-          echo "3. Go to this web address: http://$TS_IP:6080"
-          echo "============================================="
-          echo ""
-
-      - name: Keep Runner Alive
+      - name: Keep Alive
         run: |
           while true; do
-            echo "[$(date)] Android Engine Running Smoothly..."
+            echo "[$(date)] RDP Running..."
             sleep 300
           done
