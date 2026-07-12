@@ -6,14 +6,18 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 360
     steps:
-      - name: Install Desktop + XRDP
+      - name: Install Desktop + XRDP + SSH
         run: |
           sudo apt-get update
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y xfce4 xfce4-goodies xrdp dbus-x11 firefox
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+            xfce4 xfce4-goodies xrdp xorgxrdp dbus-x11 policykit-1 \
+            openssh-server firefox
+          sudo systemctl enable ssh
+          sudo systemctl start ssh
           sudo systemctl enable xrdp
           sudo adduser xrdp ssl-cert
 
-      - name: Create RDP User
+      - name: Create RDP/SSH User
         run: |
           PASSWORD="Haron1213"
           sudo useradd -m -s /bin/bash rdpuser
@@ -22,17 +26,18 @@ jobs:
           echo "RDP_USER=rdpuser" >> $GITHUB_ENV
           echo "RDP_PASS=$PASSWORD" >> $GITHUB_ENV
 
-      - name: Configure XFCE session for RDP user
+      - name: Configure XFCE session
         run: |
-          echo "xfce4-session" | sudo -u rdpuser tee /home/rdpuser/.xsession
+          echo "startxfce4" | sudo -u rdpuser tee /home/rdpuser/.xsession
+          sudo chmod +x /home/rdpuser/.xsession
           sudo chown rdpuser:rdpuser /home/rdpuser/.xsession
           sudo bash -c 'cat > /etc/xrdp/startwm.sh' << 'EOF'
           #!/bin/sh
           if [ -r /etc/profile ]; then . /etc/profile; fi
           if [ -r ~/.profile ]; then . ~/.profile; fi
-          export XDG_CONFIG_DIRS=/etc/xdg
-          export XDG_DATA_DIRS=/usr/local/share:/usr/share
-          startxfce4
+          unset DBUS_SESSION_BUS_ADDRESS
+          unset XDG_RUNTIME_DIR
+          exec startxfce4
           EOF
           sudo chmod +x /etc/xrdp/startwm.sh
           sudo systemctl restart xrdp
@@ -58,15 +63,17 @@ jobs:
       - name: Show Connection Info
         run: |
           echo "============================"
-          echo "✅ RDP Connected Successfully"
+          echo "✅ Connected Successfully"
           echo "IP Address (Tailscale): $TS_IP"
           echo "Username: $RDP_USER"
           echo "Password: $RDP_PASS"
+          echo "SSH:  ssh $RDP_USER@$TS_IP"
+          echo "RDP:  $TS_IP:3389"
           echo "============================"
 
       - name: Keep Alive
         run: |
           while true; do
-            echo "[$(date)] RDP Running..."
+            echo "[$(date)] Running..."
             sleep 300
           done
