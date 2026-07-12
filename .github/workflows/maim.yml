@@ -39,18 +39,18 @@ jobs:
 
       - name: Deploy Docker-Android Container (with noVNC Streaming)
         run: |
-          echo "Downloading and starting Android 9.0 environment with built-in desktop viewer..."
-          # Port 6080 hosts the interactive web desktop container
+          echo "Downloading and starting Android 9.0 environment..."
+          # Binding specifically to 0.0.0.0 ensures Tailscale can catch the port traffic
           docker run -d \
             --name android-container \
             --privileged \
             --device /dev/kvm \
-            -p 6080:6080 \
+            -p 0.0.0.0:6080:6080 \
             -e DEVICE="Samsung Galaxy S10" \
             budtmo/docker-android:emulator_9.0
           
-          echo "Waiting 30 seconds for the Android system layer to map channels..."
-          sleep 30
+          echo "Giving the system 60 seconds to fully launch the web interface server..."
+          sleep 60
 
       - name: Show Web Access Connection Info
         run: |
