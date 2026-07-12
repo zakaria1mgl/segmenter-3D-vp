@@ -14,10 +14,18 @@ jobs:
 
       - name: Verify KVM Hardware Virtualization Acceleration
         run: |
+          echo "Updating packages and installing CPU checker tools..."
+          sudo apt-get update && sudo apt-get install -y cpu-checker
+          
           echo "Checking for Linux Nested Virtualization Support..."
-          sudo kvm-ok
+          kvm-ok
+          
+          echo "Configuring environment to unlock KVM virtualization access permissions..."
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
           sudo chmod 666 /dev/kvm
-          echo "KVM is ready and unlocked."
+          echo "KVM layers successfully unlocked."
 
       - name: Install Tailscale for Linux
         run: |
