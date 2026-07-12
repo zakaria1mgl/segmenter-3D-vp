@@ -1,0 +1,65 @@
+name: Android-Linux-Cloud
+
+on:
+  workflow_dispatch:
+
+jobs:
+  android-job:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Verify KVM Hardware Virtualization Acceleration
+        run: |
+          echo "Checking for Linux Nested Virtualization Support..."
+          sudo kvm-ok
+          sudo chmod 666 /dev/kvm
+          echo "KVM is ready and unlocked."
+
+      - name: Install Tailscale for Linux
+        run: |
+          curl -fsSL https://tailscale.com/install.sh | sh
+
+      - name: Connect Tailscale
+        run: |
+          sudo tailscale up --authkey=${{ secrets.TAILSCALE_AUTH_KEY }} --hostname=gh-linux-android
+          TS_IP=$(tailscale ip -4)
+          echo "TS_IP=$TS_IP" >> $GITHUB_ENV
+
+      - name: Deploy Docker-Android Container (with noVNC Streaming)
+        run: |
+          echo "Downloading and starting Android 9.0 environment with built-in desktop viewer..."
+          # Port 6080 hosts the interactive web desktop container
+          docker run -d \
+            --name android-container \
+            --privileged \
+            --device /dev/kvm \
+            -p 6080:6080 \
+            -e DEVICE="Samsung Galaxy S10" \
+            budtmo/docker-android-x86-9.0
+          
+          echo "Waiting 30 seconds for the Android system layer to map channels..."
+          sleep 30
+
+      - name: Show Web Access Connection Info
+        run: |
+          echo ""
+          echo "============================================="
+          echo "✅ LINUX ANDROID RUNNER ALIVE"
+          echo "============================================="
+          echo "How to connect:"
+          echo "1. Ensure Tailscale is running on your local home PC."
+          echo "2. Open Google Chrome or Edge on your home PC."
+          echo "3. Go to this web address: http://$TS_IP:6080"
+          echo "============================================="
+          echo ""
+
+      - name: Keep Runner Alive
+        run: |
+          while true; do
+            echo "[$(date)] Android Engine Running Smoothly..."
+            sleep 300
+          done
