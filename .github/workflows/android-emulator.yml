@@ -15,6 +15,13 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
 
+      - name: Check KVM is active
+        run: |
+          ls -l /dev/kvm
+          egrep -c '(vmx|svm)' /proc/cpuinfo
+          nproc
+          free -h
+
       - name: Install Tailscale
         run: |
           curl -fsSL https://tailscale.com/install.sh | sh
@@ -30,10 +37,15 @@ jobs:
           api-level: 30
           target: default
           arch: x86_64
-          profile: pixel
-          ram-size: 4096M
+          profile: Nexus_5
+          cores: 4
+          ram-size: 8192M
           disable-animations: true
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-audio -no-boot-anim
+          force-avd-creation: true
+          emulator-boot-timeout: 600
+          # -memory and -cores passed directly to QEMU, bypassing config.ini conflicts
+          # 12288M leaves ~4GB headroom for host OS + Tailscale + adb/socat out of 16GB total
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-audio -no-boot-anim -skin 480x800 -memory 12288 -cores 4
           script: |
             echo "Emulator is up and running."
             adb tcpip 5555
@@ -42,6 +54,6 @@ jobs:
             echo "============================"
             echo "Connect from your laptop:"
             echo "  adb connect $TS_IP:5556"
-            echo "  scrcpy -s $TS_IP:5556"
+            echo "  scrcpy -s $TS_IP:5556 -b 1M --max-size 600 --max-fps 12"
             echo "============================"
             sleep 20700
