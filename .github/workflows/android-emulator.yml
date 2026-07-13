@@ -37,14 +37,12 @@ jobs:
           api-level: 30
           target: default
           arch: x86_64
-          profile: Nexus_5
+          profile: "Nexus 5"        # must match avdmanager's exact device ID (with space, quoted)
           cores: 4
           ram-size: 8192M
           disable-animations: true
           force-avd-creation: true
           emulator-boot-timeout: 600
-          # -memory and -cores passed directly to QEMU, bypassing config.ini conflicts
-          # 12288M leaves ~4GB headroom for host OS + Tailscale + adb/socat out of 16GB total
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-audio -no-boot-anim -skin 480x800 -memory 12288 -cores 4
           script: |
             echo "Emulator is up and running."
