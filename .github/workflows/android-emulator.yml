@@ -1,7 +1,6 @@
 name: Android Emulator Test
 on:
   workflow_dispatch:
-
 jobs:
   run-android:
     runs-on: ubuntu-latest
@@ -33,12 +32,11 @@ jobs:
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-audio -no-boot-anim
           script: |
-            echo "Emulator is up. Installing APK..."
-            adb install https://delta.filenetwork.vip/file/Delta-2.727.1199.apk
-            adb tcpip 5555
+            echo "Emulator is up and running."
             echo "============================"
             echo "Connect from your laptop:"
             echo "  adb connect $TS_IP:5555"
             echo "  scrcpy -s $TS_IP:5555"
             echo "============================"
+            adb tcpip 5555
             sleep 21000
