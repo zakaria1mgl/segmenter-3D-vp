@@ -21,6 +21,9 @@ jobs:
           sudo tailscale up --authkey=${{ secrets.TAILSCALE_AUTH_KEY }} --hostname=gh-runner-${{ github.run_id }}
           echo "TS_IP=$(tailscale ip -4)" >> $GITHUB_ENV
 
+      - name: Install socat
+        run: sudo apt-get update && sudo apt-get install -y socat
+
       - name: Run Android Emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -33,10 +36,14 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-audio -no-boot-anim
           script: |
             echo "Emulator is up and running."
+            adb tcpip 5555
+
+            echo "Starting ADB port forwarder (0.0.0.0:5555 -> 127.0.0.1:5555)..."
+            socat TCP-LISTEN:5555,fork,reuseaddr TCP:127.0.0.1:5555 &
+
             echo "============================"
             echo "Connect from your laptop:"
             echo "  adb connect $TS_IP:5555"
             echo "  scrcpy -s $TS_IP:5555"
             echo "============================"
-            adb tcpip 5555
             sleep 21000
