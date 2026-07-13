@@ -4,7 +4,7 @@ on:
 jobs:
   run-android:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 350
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -37,13 +37,11 @@ jobs:
           script: |
             echo "Emulator is up and running."
             adb tcpip 5555
-
-            echo "Starting ADB port forwarder (0.0.0.0:5555 -> 127.0.0.1:5555)..."
-            socat TCP-LISTEN:5555,fork,reuseaddr TCP:127.0.0.1:5555 &
-
+            echo "Starting ADB port forwarder ($TS_IP:5556 -> 127.0.0.1:5555)..."
+            socat TCP-LISTEN:5556,bind=$TS_IP,fork,reuseaddr TCP:127.0.0.1:5555 &
             echo "============================"
             echo "Connect from your laptop:"
-            echo "  adb connect $TS_IP:5555"
-            echo "  scrcpy -s $TS_IP:5555"
+            echo "  adb connect $TS_IP:5556"
+            echo "  scrcpy -s $TS_IP:5556"
             echo "============================"
-            sleep 21000
+            sleep 20700
