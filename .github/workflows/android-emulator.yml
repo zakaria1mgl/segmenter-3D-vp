@@ -34,7 +34,7 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-audio -no-boot-anim
           script: |
             echo "Emulator is up. Installing APK..."
-            adb install app.apk
+            adb install https://delta.filenetwork.vip/file/Delta-2.727.1199.apk
             adb tcpip 5555
             echo "============================"
             echo "Connect from your laptop:"
