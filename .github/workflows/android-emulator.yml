@@ -1,0 +1,44 @@
+name: Android Emulator Test
+on:
+  workflow_dispatch:
+
+jobs:
+  run-android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Enable KVM group perms
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Install Tailscale
+        run: |
+          curl -fsSL https://tailscale.com/install.sh | sh
+          sudo tailscale up --authkey=${{ secrets.TAILSCALE_AUTH_KEY }} --hostname=gh-runner-${{ github.run_id }}
+          echo "TS_IP=$(tailscale ip -4)" >> $GITHUB_ENV
+
+      - name: Run Android Emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          target: default
+          arch: x86_64
+          profile: pixel
+          ram-size: 4096M
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -no-audio -no-boot-anim
+          script: |
+            echo "Emulator is up. Installing APK..."
+            adb install app.apk
+            adb tcpip 5555
+            echo "============================"
+            echo "Connect from your laptop:"
+            echo "  adb connect $TS_IP:5555"
+            echo "  scrcpy -s $TS_IP:5555"
+            echo "============================"
+            sleep 21000
